@@ -1,0 +1,120 @@
+-------------------------------------------------------------------
+Mon Feb 13 10:51:19 UTC 2012 - coolo@suse.com
+
+- patch license to follow spdx.org standard
+
+-------------------------------------------------------------------
+Tue Jan 24 15:46:17 UTC 2012 - rschiele@gmail.com
+
+- add new option to specify a subset of files/subdirectories to
+  pack in the tar ball
+
+-------------------------------------------------------------------
+Tue Jan 24 13:26:19 UTC 2012 - rschiele@gmail.com
+
+- Checking out a specific revision cannot work when only the latest
+  version is cloned.
+
+-------------------------------------------------------------------
+Thu Dec 29 13:39:35 UTC 2011 - gollub@b1-systems.de
+
+- make svn checkout --trust-server-cert option conditional, since
+  this option is not supported by versions prior to subversion 1.6.
+
+-------------------------------------------------------------------
+Thu Dec 29 13:37:43 UTC 2011 - gollub@b1-systems.de
+
+- Trim user prefix from tarball filename.
+  This enables tar_scm service to be used with git and ssh transport
+  (in conjuction with a passphrase less ssh-pubkey). Example Git URL:
+  git@gitrepo.tld:foobar.git
+
+-------------------------------------------------------------------
+Thu Dec 29 13:35:30 UTC 2011 - gollub@b1-systems.de
+
+- git 1.6.x and very likely other version only support
+  "show --pretty=format:%at" as parameter with "format:" prefix.
+  git show --pretty=%at is also support by recent git versions.
+
+-------------------------------------------------------------------
+Mon Aug 29 07:01:36 UTC 2011 - adrian@suse.de
+
+- make it possible to create tar balls without version tag (#714542)
+
+-------------------------------------------------------------------
+Fri Aug 26 06:49:13 UTC 2011 - adrian@suse.de
+
+- support old tar bar lookup also for OBS 2.3 bs_service using .old/ directory
+
+-------------------------------------------------------------------
+Fri Aug 26 06:45:17 UTC 2011 - adrian@suse.de
+
+- drop broken code for same-commit-detection as suggested by Markus
+
+-------------------------------------------------------------------
+Thu Aug 25 16:17:02 UTC 2011 - markus.lehtonen@linux.intel.com
+
+- history-depth parameter: use hackish depth=999999999 if "full" is
+  given so that a shallow clone will be fully deepened if the
+  _service file is changed. Also, fix git clone cmd line (remove
+  a pair of quotes that cause problems).
+
+-------------------------------------------------------------------
+Thu Aug 25 13:52:06 UTC 2011 - adrian@suse.de
+
+- add support for (git) checkout depth, original patch by
+  Markus Lehtonen <markus.lehtonen@linux.intel.com>
+
+-------------------------------------------------------------------
+Wed Aug 17 07:54:29 UTC 2011 - adrian@suse.de
+
+- make packaging of meta data optional to reduce tar ball size
+
+-------------------------------------------------------------------
+Fri Aug 12 11:51:07 UTC 2011 - adrian@suse.de
+
+- fix exclude expansion
+
+-------------------------------------------------------------------
+Mon Jun 20 08:48:12 UTC 2011 - cthiel@novell.com
+
+- add support for bzr 
+
+-------------------------------------------------------------------
+Tue Mar 22 14:55:55 UTC 2011 - ammler@openttdcoop.org
+
+- Fix: recompressed tars were never reused
+- cleanup mercurial commands
+
+-------------------------------------------------------------------
+Tue Feb  8 16:00:48 UTC 2011 - adrian@suse.de
+
+- always trust svn server certificate. We don't have a secure handling
+  for it anyway. Trust needs to established via extra service.
+
+-------------------------------------------------------------------
+Wed Jan 12 10:02:41 UTC 2011 - adrian@suse.de
+
+- fix subdir usage for git
+
+-------------------------------------------------------------------
+Thu Dec 30 12:41:57 UTC 2010 - adrian@suse.de
+
+- add option exclude files/directories when creating the tar ball
+- git clone runs now with --depth 1 option
+
+-------------------------------------------------------------------
+Wed Dec  8 06:29:42 UTC 2010 - wr@rosenauer.org
+
+- support mercurial repositories
+
+-------------------------------------------------------------------
+Wed Oct 20 16:27:25 UTC 2010 - reddwarf@opensuse.org
+
+- Fix --filename parameter use
+
+-------------------------------------------------------------------
+Fri Sep  3 10:31:32 UTC 2010 - adrian@suse.de
+
+- initial version to checkout/update svn or git repos and create a tar
+
