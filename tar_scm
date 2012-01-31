@@ -18,7 +18,7 @@ MYPREFIX=""
 MYFILENAME=""
 MYREVISION=""
 MYPACKAGEMETA=""
-MYGITARGS="--depth 1"
+MYHISTORYDEPTH="1"
 INCLUDES=""
 
 while test $# -gt 0; do
@@ -69,9 +69,9 @@ while test $# -gt 0; do
     ;;
     *-history-depth)
       if [ "$2" == "full" ]; then
-        MYGITARGS="--depth 999999999"
+        MYHISTORYDEPTH="999999999"
       else
-        MYGITARGS="--depth $2"
+        MYHISTORYDEPTH="$2"
       fi
       shift
     ;;
@@ -188,7 +188,7 @@ elif [ "$MYSCM" == "git" ]; then
     # update existing content for speed/bandwidth reasons
     cd "$TAR_DIRECTORY"
     OLDVERSION=`git show --pretty=format:%at  | head -n 1`
-    git pull $MYGITARGS || exit 1
+    git pull --depth $MYHISTORYDEPTH || exit 1
     if [ -n "$MYREVISION" ]; then
       git checkout "$MYREVISION" || exit 1
     fi
