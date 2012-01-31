@@ -18,7 +18,7 @@
 
 
 Name:           obs-service-tar_scm
-License:        GPL v2 or later
+License:        GPL-2.0+
 Group:          Development/Tools/Building
 Summary:        An OBS source service: checkout or update a tar ball from svn/git/hg
 Url:            https://build.opensuse.org/package/show?package=obs-service-tar_scm&project=openSUSE%3ATools

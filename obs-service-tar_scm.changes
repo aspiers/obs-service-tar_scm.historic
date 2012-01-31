@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jan 30 15:52:17 UTC 2012 - aspiers@suse.com
+
+- fix rpmlint warnings from License field
+
+-------------------------------------------------------------------
 Tue Jan 24 15:46:17 UTC 2012 - rschiele@gmail.com
 
 - add new option to specify a subset of files/subdirectories to
