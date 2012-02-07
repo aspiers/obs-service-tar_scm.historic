@@ -75,41 +75,47 @@ class TestsBase(unittest.TestCase):
 
     def assertNumTarEnts(self, tar, expected, msg = ''):
         self.assertTrue(tarfile.is_tarfile(tar))
-        t = tarfile.open(tar)
-        tarents = t.getmembers()
+        th = tarfile.open(tar)
+        tarents = th.getmembers()
         got = len(tarents)
         if len(msg) > 0: msg += "\n"
         msg += 'expected %s to have %d entries, got %d:\n%s' % \
             (tar, expected, got, pformat(tarents))
         self.assertEqual(expected, got, msg)
-        return tarents
+        return th, tarents
 
     def assertStandardTar(self, tar, top):
-        entries = self.assertNumTarEnts(tar, 4)
+        th, entries = self.assertNumTarEnts(tar, 4)
         pprint(entries)
         self.assertEqual(entries[0].name, top)
         self.assertEqual(entries[1].name, top + '/a')
         self.assertEqual(entries[2].name, top + '/subdir')
         self.assertEqual(entries[3].name, top + '/subdir/b')
+        return th
 
     def assertSubdirTar(self, tar, top):
-        entries = self.assertNumTarEnts(tar, 2)
+        th, entries = self.assertNumTarEnts(tar, 2)
         self.assertEqual(entries[0].name, top)
         self.assertEqual(entries[1].name, top + '/b')
+        return th
 
-    def assertTarOnly(self, tarbasename, toptardir=None, tarchecker=None):
-        if not toptardir:  toptardir = tarbasename
-        if not tarchecker: tarchecker = self.assertStandardTar
+    def checkTar(self, tar, tarbasename, toptardir=None, tarchecker=None):
+        if not toptardir:
+            toptardir = tarbasename
+        if not tarchecker:
+            tarchecker = self.assertStandardTar
 
+        self.assertEqual(tar, '%s.tar' % tarbasename)
+        tarpath = os.path.join(self.outdir, tar)
+        return tarchecker(tarpath, toptardir)
+
+    def assertTarOnly(self, tarbasename, **kwargs):
         dirents = self.assertNumDirents(self.outdir, 1)
-        self.assertEqual(dirents[0], '%s.tar' % tarbasename)
-        tar = os.path.join(self.outdir, dirents[0])
-        tarchecker(tar, toptardir)
+        return self.checkTar(dirents[0], tarbasename, **kwargs)
 
-    def assertTarAndDir(self, tarbasename, toptardir=None, tarchecker=None, dirname=None):
-        if not toptardir:  toptardir = tarbasename
-        if not tarchecker: tarchecker = self.assertStandardTar
-        if not dirname:    dirname = tarbasename
+    def assertTarAndDir(self, tarbasename, dirname=None, **kwargs):
+        if not dirname:
+            dirname = tarbasename
 
         dirents = self.assertNumDirents(self.outdir, 2)
         pprint(dirents)
@@ -127,9 +133,7 @@ class TestsBase(unittest.TestCase):
         self.assertTrue(os.path.isdir(os.path.join(self.outdir, wd)),
                         dirname + ' should be directory')
 
-        self.assertEqual(tar, '%s.tar' % tarbasename)
-        tarpath = os.path.join(self.outdir, tar)
-        self.assertStandardTar(tarpath, toptardir)
+        return self.checkTar(tar, tarbasename, **kwargs)
 
     def tar_scm_std(self, *args, **kwargs):
         return self.tar_scm(self.stdargs(*args), **kwargs)
