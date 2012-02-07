@@ -125,6 +125,21 @@ class GitTests(TestsBase):
         basename = filename + '-' + version
         self.assertTarOnly(basename)
 
+    def test_versionformat_abbrevhash(self):
+        self.tar_scm_std('--versionformat', '%h')
+        basename = 'repo-%s' % self.sha1s['ten']
+        self.assertTarOnly(basename)
+
+    def test_versionformat_timestamp(self):
+        self.tar_scm_std('--versionformat', '%at')
+        basename = 'repo-%s' % self.timestamps['ten']
+        self.assertTarOnly(basename)
+
+    def test_versionformat_mixed(self):
+        self.tar_scm_std('--versionformat', '%at.master.%h')
+        basename = 'repo-%s.master.%s' % (self.timestamps['ten'], self.sha1s['ten'])
+        self.assertTarOnly(basename)
+
     # FIXME: currently no way of testing that this did the right
     # thing, because the cloned repo is removed before the source
     # service terminates.  To test this properly, we'd need to wrap or
@@ -140,3 +155,67 @@ class GitTests(TestsBase):
         basename = 'repo-%s' % self.timestamps['ten']
         self.assertTarOnly(basename)
 
+    def test_keep_source_incompatible_with_history_depth(self):
+        args = [
+            '--keep-source', 'true',
+            '--history-depth', '10',
+            '--version', '4.0',
+        ]
+        (stdout, stderr, ret) = self.tar_scm_std_fail(*args)
+        self.assertRegexpMatches(stdout, '--keep-source is incompatible with shallow clones via --history-depth')
+
+    def test_keep_source_invalid_arg(self):
+        self.tar_scm_std_fail('--keep-source', 'lksjdf', '--version', '1.1')
+
+    def test_keep_source_requires_version(self):
+        (stdout, stderr, ret) = self.tar_scm_std_fail('--keep-source', 'true')
+        self.assertRegexpMatches(stdout, '--keep-source requires --version')
+
+    def test_keep_source(self):
+        self.sequential_runs('3.0')
+
+    def sequential_runs(self, version, should_fail=None):
+        """
+        Runs tar_scm three times in a row, each with potentially
+        different parameters, to test reuse of a source tree left by
+        --keep-source.
+        """
+        self.mkfreshdir(self.pkgdir)
+
+        args = [
+            '--keep-source', 'true',
+            '--version', version
+        ]
+        basename = 'repo-%s' % version
+
+        def _check_subsequent_run(self, depth, tag):
+            self.tar_scm_std(*args)
+            self.assertTarOnly(basename)
+            self.postRun()
+            self.assertPkgWorkingDir(basename, depth, self.sha1s[tag])
+
+        # first run
+        self.tar_scm_std(*args)
+        self.assertTarAndDir(basename)
+        self.postRun()
+        self.assertPkgWorkingDir(basename, 10, self.sha1s['ten'])
+
+        _check_subsequent_run(self, 10, 'ten')
+        self.reset_upstream('twenty')
+        _check_subsequent_run(self, 20, 'twenty')
+        _check_subsequent_run(self, 20, 'twenty')
+        self.reset_upstream('thirty')
+        _check_subsequent_run(self, 30, 'thirty')
+
+    def test_version_versionformat(self):
+        self.mkfreshdir(self.pkgdir)
+        self.tar_scm_std('--version', '3.0', '--versionformat', '%at.master.%h')
+        basename = 'repo-%s.master.%s' % (self.timestamps['ten'], self.sha1s['ten'])
+        self.assertTarOnly(basename)
+
+    def test_version_versionformat_keep_source(self):
+        self.mkfreshdir(self.pkgdir)
+        version = '3.1'
+        self.tar_scm_std('--version', version, '--versionformat', '%at.master.%h', '--keep-source', 'true')
+        basename = 'repo-%s.master.%s' % (self.timestamps['ten'], self.sha1s['ten'])
+        self.assertTarAndDir(basename, dirname='repo-%s' % version)
