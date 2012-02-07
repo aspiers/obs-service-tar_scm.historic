@@ -125,6 +125,22 @@ class GitTests(TestsBase):
         basename = filename + '-' + version
         self.assertTarOnly(basename)
 
+    def test_revision(self):
+        self.mkfreshdir(self.pkgdir)
+
+        self.reset_upstream('twenty')
+        self.tar_scm_std('--revision', 'ten')
+        basename = 'repo-%s' % self.timestamps['ten']
+        th = self.assertTarOnly(basename)
+        self.assertTarMemberContains(th, basename + '/a', '10')
+
+    def test_versionformat_revision(self):
+        self.reset_upstream('thirty')
+        self.tar_scm_std('--versionformat', '%h', '--revision', 'ten')
+        basename = 'repo-%s' % self.sha1s['ten']
+        th = self.assertTarOnly(basename)
+        self.assertTarMemberContains(th, basename + '/a', '10')
+
     def test_versionformat_abbrevhash(self):
         self.tar_scm_std('--versionformat', '%h')
         basename = 'repo-%s' % self.sha1s['ten']
@@ -206,6 +222,62 @@ class GitTests(TestsBase):
         _check_subsequent_run(self, 20, 'twenty')
         self.reset_upstream('thirty')
         _check_subsequent_run(self, 30, 'thirty')
+
+    def test_revision(self):
+        version = 'git'
+        args_ten = [
+            '--keep-source', 'true',
+            '--version', version,
+            '--revision', 'ten',
+        ]
+        self.sequential_calls_with_revision(
+            version,
+            [
+                ('ten',    args_ten,  '10'),
+                ('ten',    args_ten,  '10'),
+                ('twenty', args_ten,  '10'),
+                ('twenty', args_ten,  '10'),
+                ('thirty', args_ten,  '10'),
+                ('thirty', args_ten,  '10'),
+            ]
+        )
+
+    def test_revision_master_alternating(self):
+        version = 'git'
+        args_head = [
+            '--keep-source', 'true',
+            '--version', version,
+        ]
+        args_ten = args_head + [ '--revision', 'ten' ]
+        self.sequential_calls_with_revision(
+            version,
+            [
+                ('ten',    args_ten,  '10'),
+                ('ten',    args_head, '10'),
+                ('twenty', args_ten,  '10'),
+                ('twenty', args_head, '20'),
+                ('thirty', args_ten,  '10'),
+                ('thirty', args_head, '30'),
+                ('thirty', args_ten,  '10'),
+            ]
+        )
+
+    def sequential_calls_with_revision(self, version, calls):
+        self.mkfreshdir(self.pkgdir)
+        basename = 'repo-' + version
+
+        first = True
+        while calls:
+            tag, args, expected = calls.pop(0)
+            self.reset_upstream(tag)
+            self.tar_scm_std(*args)
+            if first:
+                th = self.assertTarAndDir(basename)
+                first = False
+            else:
+                th = self.assertTarOnly(basename)
+            self.assertTarMemberContains(th, basename + '/a', expected)
+            self.postRun()
 
     def test_version_versionformat(self):
         self.mkfreshdir(self.pkgdir)

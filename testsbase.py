@@ -154,6 +154,10 @@ class TestsBase(unittest.TestCase):
 
         return self.checkTar(tar, tarbasename, **kwargs)
 
+    def assertTarMemberContains(self, th, tarmember, contents):
+        f = th.extractfile(tarmember)
+        self.assertEqual(contents, "\n".join(f.readlines()))
+
     def tar_scm_std(self, *args, **kwargs):
         return self.tar_scm(self.stdargs(*args), **kwargs)
 

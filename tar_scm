@@ -270,6 +270,18 @@ fetch_upstream () {
       # This means we cannot honour the old history-depth parameter.
       # We also need full depth so that the revision can be found,
       # if specified.
+      if git branch | grep -q '^\* (no branch)$'; then
+        # Need to get away from having a detached HEAD before
+        # we can pull.
+        if git branch | egrep -q '^. master$'; then
+          git checkout master || exit 1
+        else
+          error \
+              "$EXISTING_DIRECTORY is currently in 'detached HEAD' state" \
+              "so we need to check out a branch before doing 'git pull'," \
+              "but there is no master branch to check out."
+        fi
+      fi
       git pull || exit 1
       if [ -n "$MYREVISION" ]; then
         git checkout "$MYREVISION" || exit 1
