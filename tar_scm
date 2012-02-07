@@ -10,121 +10,151 @@
 # of the License, or (at your option) any later version.  
 # See http://www.gnu.org/licenses/gpl-2.0.html for full license text.  
 
-# defaults
-MYSCM=""
-MYURL=""
-MYVERSION="_auto_"
-MYPREFIX=""
-MYFILENAME=""
-MYREVISION=""
-MYPACKAGEMETA=""
-MYHISTORYDEPTH="1"
-MYKEEPSOURCE=""
-INCLUDES=""
+set_default_params () {
+  MYSCM=""
+  MYURL=""
+  MYVERSION="_auto_"
+  MYFORMAT=""
+  MYPREFIX=""
+  MYFILENAME=""
+  MYREVISION=""
+  MYPACKAGEMETA=""
+  MYHISTORYDEPTH=""
+  MYKEEPSOURCE="false"
+  INCLUDES=""
+}
 
-while test $# -gt 0; do
-  case $1 in
-    *-scm)
-      MYSCM="$2"
-      shift
-    ;;
-    *-url)
-      MYURL="$2"
-      shift
-    ;;
-    *-subdir)
-      MYSUBDIR="$2"
-      shift
-    ;;
-    *-revision)
-      MYREVISION="$2"
-      shift
-    ;;
-    *-version)
-      MYVERSION="$2"
-      shift
-    ;;
-    *-include)
-      INCLUDES="$INCLUDES $2"
-      shift
-    ;;
-    *-versionprefix)
-      MYPREFIX="$2"
-      shift
-    ;;
-    *-exclude)
-      EXCLUDES="$EXCLUDES --exclude=${2#/}"
-      shift
-    ;;
-    *-filename)
-      MYFILENAME="${2#/}"
-      shift
-    ;;
-    *-package-meta)
-      MYPACKAGEMETA="${2#/}"
-      shift
-    ;;
-    *-outdir)
-      MYOUTDIR="$2"
-      shift
-    ;;
-    *-history-depth)
-      if [ "$2" == "full" ]; then
-        MYHISTORYDEPTH="999999999"
-      else
+parse_params () {
+  while test $# -gt 0; do
+    case $1 in
+      *-scm)
+        MYSCM="$2"
+        shift
+      ;;
+      *-url)
+        MYURL="$2"
+        shift
+      ;;
+      *-subdir)
+        MYSUBDIR="$2"
+        shift
+      ;;
+      *-revision)
+        MYREVISION="$2"
+        shift
+      ;;
+      *-version)
+        MYVERSION="$2"
+        shift
+      ;;
+      *-include)
+        INCLUDES="$INCLUDES $2"
+        shift
+      ;;
+      *-versionformat)
+        MYFORMAT="$2"
+        shift
+      ;;
+      *-versionprefix)
+        MYPREFIX="$2"
+        shift
+      ;;
+      *-exclude)
+        EXCLUDES="$EXCLUDES --exclude=${2#/}"
+        shift
+      ;;
+      *-filename)
+        MYFILENAME="${2#/}"
+        shift
+      ;;
+      *-package-meta)
+        MYPACKAGEMETA="${2#/}"
+        shift
+      ;;
+      *-outdir)
+        MYOUTDIR="$2"
+        shift
+      ;;
+      *-history-depth)
         MYHISTORYDEPTH="$2"
-      fi
-      shift
-    ;;
-    *-keep-source)
-      MYKEEPSOURCE="yes"
-      shift
-    ;;
-    *)
-      echo Unknown parameter $1.
-      echo 'Usage: tar_scm --scm $SCM --url $URL --outdir $OUT'
-      exit 1
-    ;;
-  esac
-  shift
-done
+        shift
+      ;;
+      *-keep-source)
+        case "$2" in
+          true|false)
+            MYKEEPSOURCE="$2"
+          ;;
+          *)
+            error "keep-source parameter must be either true or false."
+          ;;
+        esac
+        shift
+      ;;
+      *)
+        echo Unknown parameter $1.
+        echo 'Usage: tar_scm --scm $SCM --url $URL [--subdir $SUBDIR] [--revision $REVISION] [--version $VERSION] [--include $INCLUDE]* [--exclude $EXCLUDE]* [--versionformat $FORMAT] [--versionprefix $PREFIX] [--filename $FILENAME] [--keep-source true|false] [--package-meta $META] --outdir $OUT'
+        exit 1
+      ;;
+    esac
+    shift
+  done
+}
 
-FILE="$MYFILENAME"
-VERSION="$MYVERSION"
-if [ -z "$MYPACKAGEMETA" ]; then
-  EXCLUDES="$EXCLUDES --exclude-vcs"
-fi
-
-if [ -z "$MYSCM" ]; then
-  echo "ERROR: no scm is given via --scm parameter (git/svn/hg)!"
+error () {
+  echo "ERROR: $*"
   exit 1
-fi
-if [ -z "$MYURL" ]; then
-  echo "ERROR: no checkout URL is given via --url parameter!"
-  exit 1
-fi
-if [ -z "$MYOUTDIR" ]; then
-  echo "ERROR: no output directory is given via --outdir parameter!"
-  exit 1
-fi
+}
 
-SRCDIR=$(pwd)
-cd "$MYOUTDIR"
+debug () {
+  #echo "$*"
+  :
+}
 
-if [ -z "$FILE" -a "$MYSCM" == "git" ]; then
-  FILE="${MYURL%/}"
-  FILE="${FILE##*/}"
-  FILE="${FILE%.git}"
-  FILE="${FILE#*@*:}"
-fi
-if [ -z "$FILE" -a "$MYSCM" == "svn" ]; then
-  FILE="${MYURL%/}"
-  FILE="${FILE##*/}"
-fi
-if [ -z "$FILE" -a "$MYSCM" == "hg" ]; then
-  FILE="${MYURL%/}"
-  FILE="${FILE##*/}"
-fi
+sanitise_params () {
+  TAR_VERSION="$MYVERSION"
+
+  if [ -z "$MYSCM" ]; then
+    error "no scm is given via --scm parameter (git/svn/hg)!"
+  fi
+  if [ -z "$MYURL" ]; then
+    error "no checkout URL is given via --url parameter!"
+  fi
+  if [ -z "$MYOUTDIR" ]; then
+    error "no output directory is given via --outdir parameter!"
+  fi
+  if [ "$MYKEEPSOURCE" = 'true' -a "$TAR_VERSION" = '_auto_' ]; then
+    error "--keep-source requires --version parameter to ensure fixed source directory!"
+  fi
+  if [ "$MYKEEPSOURCE" = 'true' -a -n "$MYHISTORYDEPTH" ]; then
+    error "--keep-source is incompatible with shallow clones via --history-depth"
+  fi
+
+  FILE="$MYFILENAME"
+  WD_VERSION="$MYVERSION"
+  if [ -z "$MYPACKAGEMETA" ]; then
+    EXCLUDES="$EXCLUDES --exclude-vcs"
+  fi
+  if [ "$MYHISTORYDEPTH" == "full" ]; then
+    MYHISTORYDEPTH="999999999"
+  fi
+}
+
+detect_file () {
+  if [ -z "$FILE" -a "$MYSCM" == "git" ]; then
+    FILE="${MYURL%/}"
+    FILE="${FILE##*/}"
+    FILE="${FILE%.git}"
+    FILE="${FILE#*@*:}"
+  fi
+  if [ -z "$FILE" -a "$MYSCM" == "svn" ]; then
+    FILE="${MYURL%/}"
+    FILE="${FILE##*/}"
+  fi
+  if [ -z "$FILE" -a "$MYSCM" == "hg" ]; then
+    FILE="${MYURL%/}"
+    FILE="${FILE##*/}"
+  fi
+}
 
 # Try to find an existing source tree which can be upgraded instead of
 # complete full download.  First we look for a directory which was
@@ -132,40 +162,80 @@ fi
 # a fixed directory name, and does not work with the subdir parameter
 # because if subdir parameter is specified, we would need to do a fresh
 # clone with git or hg.
-kept_source_dir="$SRCDIR/$FILE-$VERSION"
-if [ -n "$MYKEEPSOURCE" -a "$VERSION" != '_auto_' -a \
-     -d "$kept_source_dir/.$MYSCM" -a ! -n "$MYSUBDIR" ]; then
-  EXISTING_DIRECTORY="$kept_source_dir"
-  echo "keep-source option enabled; reusing source from $kept_source_dir"
-else
-  existing_tar=$(echo $SRCDIR/.old/_service:*tar_scm:${FILE}-*.tar*)
-  if [ ! -e "$existing_tar" ]; then
-    # for OBS < 2.3
-    existing_tar=$(echo $SRCDIR/_service:*tar_scm:${FILE}-*.tar*)
+can_reuse_existing_source_tree () {
+  REUSE_SOURCE_TREE=
+  KEPT_SOURCE_DIR="$FILE-$WD_VERSION"
+  KEPT_SOURCE_PATH="$SRCDIR/$KEPT_SOURCE_DIR"
+
+  if [ "$MYKEEPSOURCE" != 'true' ]; then
+    debug "keep-source disabled; can't reuse source tree"
+    return
   fi
-  if [ -e "$existing_tar" ]; then
+  
+  if [ "$TAR_VERSION" == '_auto_' ]; then
+    debug "version parameter not fixed to constant value; can't reuse source tree"
+    return
+  fi
+
+  SCM_META_DATA_DIR="$KEPT_SOURCE_PATH/.$MYSCM"
+  if [ ! -e "$SCM_META_DATA_DIR" ]; then
+    debug "$SCM_META_DATA_DIR not found; can't reuse source tree"
+    return
+  fi
+  
+  if [ -n "$MYSUBDIR" ]; then
+    # FIXME: this can be fixed by doing a cp of the subdir rather than a mv
+    # which corrupts the source tree
+    debug "--subdir enabled; reuse of existing source tree not implemented yet"
+    return
+  fi
+
+  REUSE_SOURCE_TREE="$KEPT_SOURCE_DIR"
+  echo "Reusing source from $KEPT_SOURCE_DIR"
+}
+
+set_default_params
+parse_params "$@"
+
+sanitise_params
+
+SRCDIR=$(pwd)
+cd "$MYOUTDIR"
+detect_file
+
+can_reuse_existing_source_tree
+
+if [ -n "$REUSE_SOURCE_TREE" ]; then
+  EXISTING_DIRECTORY="$KEPT_SOURCE_PATH"
+else
+  EXISTING_TAR=$(echo $SRCDIR/.old/_service:*tar_scm:${FILE}-*.tar*)
+  if [ ! -e "$EXISTING_TAR" ]; then
+    # for OBS < 2.3
+    EXISTING_TAR=$(echo $SRCDIR/_service:*tar_scm:${FILE}-*.tar*)
+  fi
+  if [ -e "$EXISTING_TAR" ]; then
     UNCOMPRESS="cat"
-    if [ "${existing_tar%.tar.gz}" != "$existing_tar" ]; then
+    if [ "${EXISTING_TAR%.tar.gz}" != "$EXISTING_TAR" ]; then
       UNCOMPRESS="gunzip -c"
-    elif [ "${existing_tar%.tar.bz2}" != "$existing_tar" ]; then
+    elif [ "${EXISTING_TAR%.tar.bz2}" != "$EXISTING_TAR" ]; then
       UNCOMPRESS="bunzip2 -c"
-    elif [ "${existing_tar%.tar.xz}" != "$existing_tar" ]; then
+    elif [ "${EXISTING_TAR%.tar.xz}" != "$EXISTING_TAR" ]; then
       UNCOMPRESS="xz -dc"
     fi
-    if $UNCOMPRESS "$existing_tar" | tar xf -; then
+    if $UNCOMPRESS "$EXISTING_TAR" | tar xf -; then
       EXISTING_DIRECTORY=`find * -maxdepth 0 -a -type d`
-      echo "Found existing source in $existing_tar and unpacked to $EXISTING_DIRECTORY for reuse"
+      echo "Found existing source in $EXISTING_TAR and unpacked to $EXISTING_DIRECTORY for reuse"
     else
-      existing_tar=""
+      EXISTING_TAR=""
     fi
   else
-    existing_tar=""
+    EXISTING_TAR=""
   fi
 fi
 
 if [ "$MYSCM" == "svn" ]; then
   if [[ $(svn --version --quiet) > "1.5.99" ]]; then
-       TRUST_SERVER_CERT="--trust-server-cert";
+    TRUST_SERVER_CERT="--trust-server-cert";
   fi
   if [ -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.svn" ]; then
     # update existing content for speed/bandwidth reasons
@@ -177,14 +247,14 @@ if [ "$MYSCM" == "svn" ]; then
       svn up || exit 1
     fi
     NEWVERSION=`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
-    cd -
+    cd - >/dev/null
     mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
   else
     # new checkout
     if [ -n "$MYSUBDIR" ]; then
-       # just checkout the subdir
-       mkdir -p "$MYSUBDIR"
-       cd "$MYSUBDIR"
+      # just checkout the subdir
+      mkdir -p "$MYSUBDIR"
+      cd "$MYSUBDIR"
     fi
     if [ -n "$MYREVISION" ]; then
       svn co --non-interactive $TRUST_SERVER_CERT -r"$MYREVISION" "$MYURL/$MYSUBDIR" "${FILE}" || exit 1
@@ -192,47 +262,56 @@ if [ "$MYSCM" == "svn" ]; then
       svn co --non-interactive $TRUST_SERVER_CERT "$MYURL/$MYSUBDIR" "${FILE}" || exit 1
     fi
     if [ -n "$MYSUBDIR" ]; then
-       cd -
+        cd - >/dev/null
     fi
   fi
-  if [ "$VERSION" == "_auto_" ]; then
+  if [ "$TAR_VERSION" == "_auto_" ]; then
     cd "$FILE"
     [ -n "$MYPREFIX" ] && MYPREFIX="$MYPREFIX.rev"
-    VERSION="$MYPREFIX"`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
-    cd -
+    TAR_VERSION="$MYPREFIX"`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
+    cd - >/dev/null
   fi
 elif [ "$MYSCM" == "git" ]; then
-  if [ -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.git" ]; then
+  if [ -n "$EXISTING_DIRECTORY" -a -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.git" ]; then
     # update existing content for speed/bandwidth reasons
     cd "$EXISTING_DIRECTORY"
     OLDVERSION=`git show --pretty=format:%at  | head -n 1`
     # Cannot use --depth here or we risk merge conflicts due to not
     # fetching all commits in between current HEAD and upstream.
+    # This means we cannot honour the old history-depth parameter.
+    # We also need full depth so that the revision can be found,
+    # if specified.
     git pull || exit 1
     if [ -n "$MYREVISION" ]; then
       git checkout "$MYREVISION" || exit 1
     fi
     NEWVERSION=`git show --pretty=format:%at  | head -n 1`
-    cd -
-    mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
+    cd - >/dev/null
+    if [ -n "$REUSE_SOURCE_TREE" ]; then
+      debug "Copying $EXISTING_DIRECTORY to $FILE"
+      cp -a "$EXISTING_DIRECTORY" "${FILE}" || exit 1
+    else
+      debug "Moving $EXISTING_DIRECTORY to $FILE"
+      mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
+    fi
   else
     # new checkout
     if [ -n "$MYREVISION" ]; then
-      #Clone with full depth; so that the revision can be found
+      # Clone with full depth; so that the revision can be found
       git clone "$MYURL" "${FILE}" || exit 1
       cd "$FILE"
       git checkout "$MYREVISION" || exit 1
-      cd -
+      cd - >/dev/null
     else
-      #Clone only the latest revision
-      git clone --depth 1 "$MYURL" "${FILE}" || exit 1
+      git clone --depth=$MYHISTORYDEPTH "$MYURL" "${FILE}" || exit 1
     fi
   fi
-  if [ "$VERSION" == "_auto_" ]; then
+  if [ "$TAR_VERSION" == "_auto_" ] || [ -n "$MYFORMAT" ]; then
+    [ -z "$MYFORMAT" ] && MYFORMAT="%at"
     cd "$FILE"
     [ -n "$MYPREFIX" ] && MYPREFIX="$MYPREFIX."
-    VERSION="$MYPREFIX"`git show --pretty=format:%at  | head -n 1`
-    cd -
+    TAR_VERSION="$MYPREFIX"`git show --pretty=format:"$MYFORMAT" | head -n 1`
+    cd - >/dev/null
   fi
 elif [ "$MYSCM" == "hg" ]; then
   if [ -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.hg" ]; then
@@ -241,7 +320,7 @@ elif [ "$MYSCM" == "hg" ]; then
     OLDVERSION=`hg id -i -rtip`
     hg pull || exit 1
     NEWVERSION=`hg id -i -rtip`
-    cd -
+    cd - >/dev/null
     mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
   else
     # new checkout
@@ -250,14 +329,14 @@ elif [ "$MYSCM" == "hg" ]; then
   if [ -n "$MYREVISION" ]; then
     cd "$FILE"
     hg update "$MYREVISION" || exit 1
-    cd -
+    cd - >/dev/null
   fi	  
-  if [ "$VERSION" == "_auto_" ]; then
+  if [ "$TAR_VERSION" == "_auto_" ]; then
     cd "$FILE"
     [ -n "$MYPREFIX" ] && MYPREFIX="$MYPREFIX."
     # current working revision
-    VERSION="$MYPREFIX"`hg id -n`
-    cd -
+    TAR_VERSION="$MYPREFIX"`hg id -n`
+    cd - >/dev/null
   fi
 elif [ "$MYSCM" == "bzr" ]; then
   if [ -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.bzr" ]; then
@@ -269,7 +348,7 @@ elif [ "$MYSCM" == "bzr" ]; then
       bzr revert -r "$MYREVISION" || exit 1
     fi
     NEWVERSION=`bzr revno`
-    cd -
+    cd - >/dev/null
     mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
   else
     # new checkout
@@ -279,45 +358,53 @@ elif [ "$MYSCM" == "bzr" ]; then
       bzr checkout "$MYURL" "${FILE}" || exit 1
     fi
   fi
-  if [ "$VERSION" == "_auto_" ]; then
+  if [ "$TAR_VERSION" == "_auto_" ]; then
     cd "$FILE"
     [ -n "$MYPREFIX" ] && MYPREFIX="$MYPREFIX."
-    VERSION="$MYPREFIX"`bzr revno`
-    cd -
+    TAR_VERSION="$MYPREFIX"`bzr revno`
+    cd - >/dev/null
   fi
 else
-  echo "ERROR: unknown scm $MYSCM"
-  exit 1
+  error "unknown scm $MYSCM"
 fi
 
 if [ ! -e "$FILE/$MYSUBDIR" ]; then
-  echo "ERROR: directory does not exist: $FILE/$MYSUBDIR"
-  exit 1
+  error "directory does not exist: $FILE/$MYSUBDIR"
 fi
 
-if [ -z "$VERSION" ]; then
-  FILENAME="$FILE"
+if [ -z "$TAR_VERSION" ]; then
+  TAR_BASENAME="$FILE"
 else
-  FILENAME="${FILE}-${VERSION}"
+  TAR_BASENAME="${FILE}-${TAR_VERSION}"
 fi
 
 MYINCLUDES=""
 
 for INC in $INCLUDES; do
-  MYINCLUDES="$MYINCLUDES $FILENAME/$INC"
+  MYINCLUDES="$MYINCLUDES $TAR_BASENAME/$INC"
 done
 if [ -z "$MYINCLUDES" ]; then
-  MYINCLUDES="$FILENAME"
+  MYINCLUDES="$TAR_BASENAME"
 fi
 
-mv "$FILE/$MYSUBDIR" "${FILENAME}" || exit 1
+debug mv "$FILE/$MYSUBDIR" "${TAR_BASENAME}"
+mv "$FILE/$MYSUBDIR" "${TAR_BASENAME}" || exit 1
 
-tar cf "$MYOUTDIR/${FILENAME}.tar" $EXCLUDES $MYINCLUDES || exit 1
+TARFILE="${TAR_BASENAME}.tar"
+TARPATH="$MYOUTDIR/$TARFILE"
+debug tar cf "$TARPATH" $EXCLUDES $MYINCLUDES
+tar cf "$TARPATH" $EXCLUDES $MYINCLUDES || exit 1
+echo "Created $TARFILE"
 
-if [ -z "$MYKEEPSOURCE" ]; then
-  rm -rf "${FILENAME}" "$FILE"
+if [ "$MYKEEPSOURCE" = 'false' ] || [ -n "$REUSE_SOURCE_TREE" ]; then
+  debug rm -rf "${TAR_BASENAME}" "$FILE"
+  rm -rf "${TAR_BASENAME}" "$FILE"
 else
-  echo "keep-source option enabled; not deleting $FILENAME or $FILE"
+  debug "keep-source option enabled; not deleting $TAR_BASENAME or $FILE"
+  if [ "$TAR_BASENAME" != "$KEPT_SOURCE_DIR" ]; then
+    debug "Renaming $TAR_BASENAME to $KEPT_SOURCE_DIR"
+    mv "$TAR_BASENAME" "$KEPT_SOURCE_DIR"
+  fi
 fi
 
 exit 0
