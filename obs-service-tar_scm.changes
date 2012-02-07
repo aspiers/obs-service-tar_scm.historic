@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb  7 15:52:19 GMT 2012 - aspiers@suse.com
+
+- added test suite (currently only covers git scm)
+
+-------------------------------------------------------------------
 Mon Jan 30 15:52:17 UTC 2012 - aspiers@suse.com
 
 - fix rpmlint warnings from License field
