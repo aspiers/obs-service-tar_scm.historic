@@ -19,6 +19,7 @@ MYFILENAME=""
 MYREVISION=""
 MYPACKAGEMETA=""
 MYHISTORYDEPTH="1"
+MYKEEPSOURCE=""
 INCLUDES=""
 
 while test $# -gt 0; do
@@ -75,6 +76,10 @@ while test $# -gt 0; do
       fi
       shift
     ;;
+    *-keep-source)
+      MYKEEPSOURCE="yes"
+      shift
+    ;;
     *)
       echo Unknown parameter $1.
       echo 'Usage: tar_scm --scm $SCM --url $URL --outdir $OUT'
@@ -121,37 +126,50 @@ if [ -z "$FILE" -a "$MYSCM" == "hg" ]; then
   FILE="${FILE##*/}"
 fi
 
-# Try to find an existing tar ball, which can be upgraded instead of complete full download.
-existing_tar=$(echo $SRCDIR/.old/_service:*tar_scm:${FILE}-*.tar*)
-if [ ! -e "$existing_tar" ]; then
-  # for OBS < 2.3
-  existing_tar=$(echo $SRCDIR/_service:*tar_scm:${FILE}-*.tar*)
-fi
-if [ -e "$existing_tar" ]; then
-  UNCOMPRESS="cat"
-  if [ "${existing_tar%.tar.gz}" != "$existing_tar" ]; then
-    UNCOMPRESS="gunzip -c"
-  elif [ "${existing_tar%.tar.bz2}" != "$existing_tar" ]; then
-    UNCOMPRESS="bunzip2 -c"
-  elif [ "${existing_tar%.tar.xz}" != "$existing_tar" ]; then
-    UNCOMPRESS="xz -dc"
+# Try to find an existing source tree which can be upgraded instead of
+# complete full download.  First we look for a directory which was
+# checked out and left behind by the keep-source param.  This requires
+# a fixed directory name, and does not work with the subdir parameter
+# because if subdir parameter is specified, we would need to do a fresh
+# clone with git or hg.
+kept_source_dir="$SRCDIR/$FILE-$VERSION"
+if [ -n "$MYKEEPSOURCE" -a "$VERSION" != '_auto_' -a \
+     -d "$kept_source_dir/.$MYSCM" -a ! -n "$MYSUBDIR" ]; then
+  EXISTING_DIRECTORY="$kept_source_dir"
+  echo "keep-source option enabled; reusing source from $kept_source_dir"
+else
+  existing_tar=$(echo $SRCDIR/.old/_service:*tar_scm:${FILE}-*.tar*)
+  if [ ! -e "$existing_tar" ]; then
+    # for OBS < 2.3
+    existing_tar=$(echo $SRCDIR/_service:*tar_scm:${FILE}-*.tar*)
   fi
-  if $UNCOMPRESS "$existing_tar" | tar xf -; then
-    TAR_DIRECTORY=`find * -maxdepth 0 -a -type d`
+  if [ -e "$existing_tar" ]; then
+    UNCOMPRESS="cat"
+    if [ "${existing_tar%.tar.gz}" != "$existing_tar" ]; then
+      UNCOMPRESS="gunzip -c"
+    elif [ "${existing_tar%.tar.bz2}" != "$existing_tar" ]; then
+      UNCOMPRESS="bunzip2 -c"
+    elif [ "${existing_tar%.tar.xz}" != "$existing_tar" ]; then
+      UNCOMPRESS="xz -dc"
+    fi
+    if $UNCOMPRESS "$existing_tar" | tar xf -; then
+      EXISTING_DIRECTORY=`find * -maxdepth 0 -a -type d`
+      echo "Found existing source in $existing_tar and unpacked to $EXISTING_DIRECTORY for reuse"
+    else
+      existing_tar=""
+    fi
   else
     existing_tar=""
   fi
-else
-  existing_tar=""
 fi
 
 if [ "$MYSCM" == "svn" ]; then
   if [[ $(svn --version --quiet) > "1.5.99" ]]; then
        TRUST_SERVER_CERT="--trust-server-cert";
   fi
-  if [ -z "$MYSUBDIR" -a -d "$TAR_DIRECTORY/.svn" ]; then
+  if [ -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.svn" ]; then
     # update existing content for speed/bandwidth reasons
-    cd "$TAR_DIRECTORY"
+    cd "$EXISTING_DIRECTORY"
     OLDVERSION=`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
     if [ -n "$MYREVISION" ]; then
       svn up -r"$MYREVISION" || exit 1
@@ -160,7 +178,7 @@ if [ "$MYSCM" == "svn" ]; then
     fi
     NEWVERSION=`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
     cd -
-    mv "$TAR_DIRECTORY" "${FILE}" || exit 1
+    mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
   else
     # new checkout
     if [ -n "$MYSUBDIR" ]; then
@@ -184,17 +202,19 @@ if [ "$MYSCM" == "svn" ]; then
     cd -
   fi
 elif [ "$MYSCM" == "git" ]; then
-  if [ -z "$MYSUBDIR" -a -d "$TAR_DIRECTORY/.git" ]; then
+  if [ -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.git" ]; then
     # update existing content for speed/bandwidth reasons
-    cd "$TAR_DIRECTORY"
+    cd "$EXISTING_DIRECTORY"
     OLDVERSION=`git show --pretty=format:%at  | head -n 1`
-    git pull --depth $MYHISTORYDEPTH || exit 1
+    # Cannot use --depth here or we risk merge conflicts due to not
+    # fetching all commits in between current HEAD and upstream.
+    git pull || exit 1
     if [ -n "$MYREVISION" ]; then
       git checkout "$MYREVISION" || exit 1
     fi
     NEWVERSION=`git show --pretty=format:%at  | head -n 1`
     cd -
-    mv "$TAR_DIRECTORY" "${FILE}" || exit 1
+    mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
   else
     # new checkout
     if [ -n "$MYREVISION" ]; then
@@ -215,14 +235,14 @@ elif [ "$MYSCM" == "git" ]; then
     cd -
   fi
 elif [ "$MYSCM" == "hg" ]; then
-  if [ -z "$MYSUBDIR" -a -d "$TAR_DIRECTORY/.hg" ]; then
+  if [ -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.hg" ]; then
     # update existing content for speed/bandwidth reasons
-    cd "$TAR_DIRECTORY"
+    cd "$EXISTING_DIRECTORY"
     OLDVERSION=`hg id -i -rtip`
     hg pull || exit 1
     NEWVERSION=`hg id -i -rtip`
     cd -
-    mv "$TAR_DIRECTORY" "${FILE}" || exit 1
+    mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
   else
     # new checkout
     hg clone "$MYURL" "${FILE}" || exit 1
@@ -240,9 +260,9 @@ elif [ "$MYSCM" == "hg" ]; then
     cd -
   fi
 elif [ "$MYSCM" == "bzr" ]; then
-  if [ -z "$MYSUBDIR" -a -d "$TAR_DIRECTORY/.bzr" ]; then
+  if [ -z "$MYSUBDIR" -a -d "$EXISTING_DIRECTORY/.bzr" ]; then
     # update existing content for speed/bandwidth reasons
-    cd "$TAR_DIRECTORY"
+    cd "$EXISTING_DIRECTORY"
     OLDVERSION=`bzr revno`
     bzr update || exit 1
     if [ -n "$MYREVISION" ]; then
@@ -250,7 +270,7 @@ elif [ "$MYSCM" == "bzr" ]; then
     fi
     NEWVERSION=`bzr revno`
     cd -
-    mv "$TAR_DIRECTORY" "${FILE}" || exit 1
+    mv "$EXISTING_DIRECTORY" "${FILE}" || exit 1
   else
     # new checkout
     if [ -n "$MYREVISION" ]; then
@@ -271,7 +291,7 @@ else
 fi
 
 if [ ! -e "$FILE/$MYSUBDIR" ]; then
-  echo "Directory does not exist: $FILE/$MYSUBDIR"
+  echo "ERROR: directory does not exist: $FILE/$MYSUBDIR"
   exit 1
 fi
 
@@ -293,6 +313,11 @@ fi
 mv "$FILE/$MYSUBDIR" "${FILENAME}" || exit 1
 
 tar cf "$MYOUTDIR/${FILENAME}.tar" $EXCLUDES $MYINCLUDES || exit 1
-rm -rf "${FILENAME}" "$FILE"
+
+if [ -z "$MYKEEPSOURCE" ]; then
+  rm -rf "${FILENAME}" "$FILE"
+else
+  echo "keep-source option enabled; not deleting $FILENAME or $FILE"
+fi
 
 exit 0

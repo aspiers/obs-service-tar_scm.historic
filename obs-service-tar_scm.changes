@@ -2,6 +2,8 @@
 Mon Jan 30 15:52:17 UTC 2012 - aspiers@suse.com
 
 - fix rpmlint warnings from License field
+- add new 'keepsource' option to allow more efficient 'git pull'
+  and set_version service to extract version directly from repo
 
 -------------------------------------------------------------------
 Tue Jan 24 15:46:17 UTC 2012 - rschiele@gmail.com

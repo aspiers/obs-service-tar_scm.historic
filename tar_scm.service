@@ -41,5 +41,8 @@
   <parameter name="history-depth">
     <description>Stored history depth. Special value "full" clones/pulls full history. Only valid if SCM git is used.</description>
   </parameter>
+  <parameter name="keep-source">
+    <description>Don't delete unpacked copy of upstream source.  Can be used with disabled mode to only pull deltas of the upstream repo.</description>
+  </parameter>
 </service>
 
