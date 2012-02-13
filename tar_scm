@@ -106,19 +106,19 @@ fi
 SRCDIR=$(pwd)
 cd "$MYOUTDIR"
 
-if [ -z "$FILE" -a "$MYSCM" == "git" ]; then
-  FILE="${MYURL%/}"
-  FILE="${FILE##*/}"
-  FILE="${FILE%.git}"
-  FILE="${FILE#*@*:}"
-fi
-if [ -z "$FILE" -a "$MYSCM" == "svn" ]; then
-  FILE="${MYURL%/}"
-  FILE="${FILE##*/}"
-fi
-if [ -z "$FILE" -a "$MYSCM" == "hg" ]; then
-  FILE="${MYURL%/}"
-  FILE="${FILE##*/}"
+if [ -z "$FILE" ]; then
+  case "$MYSCM" in
+    git)
+      FILE="${MYURL%/}"
+      FILE="${FILE##*/}"
+      FILE="${FILE%.git}"
+      FILE="${FILE#*@*:}"
+      ;;
+    svn|hg|bzr)
+      FILE="${MYURL%/}"
+      FILE="${FILE##*/}"
+      ;;
+  esac
 fi
 
 # Try to find an existing tar ball, which can be upgraded instead of complete full download.
@@ -147,40 +147,44 @@ fi
 
 if [ "$MYSCM" == "svn" ]; then
   if [[ $(svn --version --quiet) > "1.5.99" ]]; then
-       TRUST_SERVER_CERT="--trust-server-cert";
+    TRUST_SERVER_CERT="--trust-server-cert";
   fi
   if [ -z "$MYSUBDIR" -a -d "$TAR_DIRECTORY/.svn" ]; then
     # update existing content for speed/bandwidth reasons
     cd "$TAR_DIRECTORY"
-    OLDVERSION=`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
+    OLDVERSION=`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'` || exit 1
     if [ -n "$MYREVISION" ]; then
       svn up -r"$MYREVISION" || exit 1
     else
       svn up || exit 1
     fi
-    NEWVERSION=`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
+    NEWVERSION=`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'` || exit 1
     cd -
     mv "$TAR_DIRECTORY" "${FILE}" || exit 1
   else
     # new checkout
     if [ -n "$MYSUBDIR" ]; then
-       # just checkout the subdir
-       mkdir -p "$MYSUBDIR"
-       cd "$MYSUBDIR"
+      # just checkout the subdir
+      mkdir -p "$FILE"
+      cd "$FILE"
+      if [ "$MYSUBDIR" != "${MYSUBDIR#/}" ]; then
+        echo "ERROR: Absolute paths not permitted for --subdir"
+        exit 1
+      fi
     fi
     if [ -n "$MYREVISION" ]; then
-      svn co --non-interactive $TRUST_SERVER_CERT -r"$MYREVISION" "$MYURL/$MYSUBDIR" "${FILE}" || exit 1
+      svn co --non-interactive $TRUST_SERVER_CERT -r"$MYREVISION" "$MYURL/$MYSUBDIR" "${MYSUBDIR:-$FILE}" || exit 1
     else
-      svn co --non-interactive $TRUST_SERVER_CERT "$MYURL/$MYSUBDIR" "${FILE}" || exit 1
+      svn co --non-interactive $TRUST_SERVER_CERT "$MYURL/$MYSUBDIR" "${MYSUBDIR:-$FILE}" || exit 1
     fi
     if [ -n "$MYSUBDIR" ]; then
-       cd -
+      cd -
     fi
   fi
   if [ "$VERSION" == "_auto_" ]; then
-    cd "$FILE"
+    cd "$FILE/$MYSUBDIR"
     [ -n "$MYPREFIX" ] && MYPREFIX="$MYPREFIX.rev"
-    VERSION="$MYPREFIX"`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
+    VERSION="$MYPREFIX"`LC_ALL=C svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'` || exit 1
     cd -
   fi
 elif [ "$MYSCM" == "git" ]; then
@@ -231,7 +235,7 @@ elif [ "$MYSCM" == "hg" ]; then
     cd "$FILE"
     hg update "$MYREVISION" || exit 1
     cd -
-  fi	  
+  fi
   if [ "$VERSION" == "_auto_" ]; then
     cd "$FILE"
     [ -n "$MYPREFIX" ] && MYPREFIX="$MYPREFIX."
@@ -290,7 +294,9 @@ if [ -z "$MYINCLUDES" ]; then
   MYINCLUDES="$FILENAME"
 fi
 
-mv "$FILE/$MYSUBDIR" "${FILENAME}" || exit 1
+if [ "$FILE" != "$FILENAME" ]; then
+  mv "$FILE/$MYSUBDIR" "${FILENAME}" || exit 1
+fi
 
 tar cf "$MYOUTDIR/${FILENAME}.tar" $EXCLUDES $MYINCLUDES || exit 1
 rm -rf "${FILENAME}" "$FILE"
