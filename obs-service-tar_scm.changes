@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Feb  7 15:52:19 GMT 2012 - aspiers@suse.com
+
+- Add test suite
+- Fix --subdir with --scm svn
+- Fix --scm bzr
+
+-------------------------------------------------------------------
 Mon Jan 30 15:52:17 UTC 2012 - aspiers@suse.com
 
 - fix rpmlint warnings from License field
