@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Feb  8 16:52:19 GMT 2012 - aspiers@suse.com
+
+- add new 'versionformat' option to determine how version is
+  extracted via git show --pretty=...
+- support caching of cloned repositories to speed up fetch
+  from upstream
+
+-------------------------------------------------------------------
 Tue Feb  7 15:52:19 GMT 2012 - aspiers@suse.com
 
 - Add test suite
