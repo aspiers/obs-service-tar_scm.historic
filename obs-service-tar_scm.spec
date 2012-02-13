@@ -23,12 +23,13 @@ License:        GPL-2.0+
 Group:          Development/Tools/Building
 Summary:        An OBS source service: checkout or update a tar ball from svn/git/hg
 Url:            https://build.opensuse.org/package/show?package=obs-service-%{service}&project=openSUSE%3ATools
-Version:        0.2.2
+Version:        0.2.3
 Release:        1
 Source:         %{service}
 Source1:        %{service}.service
-Requires:       git mercurial subversion bzr
-BuildRequires:  git mercurial subversion bzr python
+Source2:        %{service}.rc
+Requires:       git subversion mercurial bzr
+BuildRequires:  git subversion mercurial bzr python
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
@@ -48,6 +49,10 @@ mkdir -p $RPM_BUILD_ROOT/usr/lib/obs/service
 install -m 0755 %{SOURCE0} $RPM_BUILD_ROOT/usr/lib/obs/service
 install -m 0644 %{SOURCE1} $RPM_BUILD_ROOT/usr/lib/obs/service
 
+mkdir -p $RPM_BUILD_ROOT/etc/obs/services
+install -m 0644 %{SOURCE2} $RPM_BUILD_ROOT/etc/obs/services/%{service}
+mkdir -p $RPM_BUILD_ROOT/var/cache/obs/%{service}/{repo{,url},incoming}
+
 %check
 $RPM_SOURCE_DIR/test.py
 
@@ -55,5 +60,8 @@ $RPM_SOURCE_DIR/test.py
 %defattr(-,root,root)
 %dir /usr/lib/obs
 /usr/lib/obs/service
+%config(noreplace) /etc/obs/services/*
+%defattr(-,obsrun,obsrun)
+%dir /var/cache/obs/%{service}
 
 %changelog

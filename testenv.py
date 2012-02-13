@@ -19,6 +19,7 @@ class TestEnvironment:
     @classmethod
     def setUpClass(cls):
         ScmInvocationLogs.setup_bin_wrapper(cls.scm, cls.tmp_dir)
+        os.putenv('DEBUG_TAR_SCM', 'yes')
 
     def calcPaths(self):
         if not self._testMethodName.startswith('test_'):
