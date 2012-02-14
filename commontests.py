@@ -57,13 +57,13 @@ class CommonTests(TestEnvironment, TestAssertions):
         self.assertTarMemberContains(th, self.basename() + '/a', '2')
 
     def test_revision(self):
-        self.fixtures.create_commits(2)
-        self.tar_scm_std('--revision', self.rev(2))
-        th = self.assertTarOnly(self.basename())
-        self.assertTarMemberContains(th, self.basename() + '/a', '2')
+        self._revision()
 
     def test_revision_no_cache(self):
         self._revision(use_cache=False)
+
+    def test_revision_subdir(self):
+        self._revision(use_subdir=True)
 
     def test_revision_subdir_no_cache(self):
         self._revision(use_cache=False, use_subdir=True)
@@ -89,8 +89,14 @@ class CommonTests(TestEnvironment, TestAssertions):
             use_cache
         )
 
+    def test_revision_master_alternating(self):
+        self._revision_master_alternating()
+
     def test_revision_master_alternating_no_cache(self):
         self._revision_master_alternating(use_cache=False)
+
+    def test_revision_master_alternating_subdir(self):
+        self._revision_master_alternating(use_subdir=True)
 
     def test_revision_master_alternating_subdir_no_cache(self):
         self._revision_master_alternating(use_cache=False, use_subdir=True)
@@ -149,6 +155,9 @@ class CommonTests(TestEnvironment, TestAssertions):
 
             self.scmlogs.next()
             self.postRun()
+
+    def test_switch_revision_and_subdir(self):
+        self._switch_revision_and_subdir()
 
     def test_switch_revision_and_subdir_no_cache(self):
         self._switch_revision_and_subdir(use_cache=False)

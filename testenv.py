@@ -25,6 +25,7 @@ class TestEnvironment:
             return
         print "++++++ setupClass ++++++"
         ScmInvocationLogs.setup_bin_wrapper(cls.scm, cls.tmp_dir)
+        os.putenv('DEBUG_TAR_SCM', 'yes')
         cls.is_setup = True
 
     def calcPaths(self):
