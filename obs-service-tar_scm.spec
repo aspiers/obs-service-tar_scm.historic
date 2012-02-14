@@ -16,16 +16,18 @@
 #
 
 
-Name:           obs-service-tar_scm
+%define service tar_scm
+Name:           obs-service-%{service}
 Summary:        An OBS source service: checkout or update a tar ball from svn/git/hg
 License:        GPL-2.0+
 Group:          Development/Tools/Building
-Url:            https://build.opensuse.org/package/show?package=obs-service-tar_scm&project=openSUSE%3ATools
-Version:        0.2.1
+Url:            https://build.opensuse.org/package/show?package=obs-service-%{service}&project=openSUSE%3ATools
+Version:        0.2.2
 Release:        0
-Source:         tar_scm
-Source1:        tar_scm.service
-Requires:       subversion git mercurial bzr
+Source:         %{service}
+Source1:        %{service}.service
+Requires:       git mercurial subversion bzr
+BuildRequires:  git mercurial subversion bzr python
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
@@ -44,6 +46,9 @@ It supports downloading from svn, git, hg and bzr repositories.
 mkdir -p $RPM_BUILD_ROOT/usr/lib/obs/service
 install -m 0755 %{SOURCE0} $RPM_BUILD_ROOT/usr/lib/obs/service
 install -m 0644 %{SOURCE1} $RPM_BUILD_ROOT/usr/lib/obs/service
+
+%check
+$RPM_SOURCE_DIR/test.py
 
 %files
 %defattr(-,root,root)
