@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Feb  13 15:52:19 GMT 2012 - aspiers@suse.com
+
+- Add test suite
+- Fix --subdir with --scm svn
+- Fix --scm bzr
+
+-------------------------------------------------------------------
 Mon Feb 13 10:51:19 UTC 2012 - coolo@suse.com
 
 - patch license to follow spdx.org standard
