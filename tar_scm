@@ -224,8 +224,10 @@ fetch_upstream () {
 calc_dir_to_clone_to () {
   if [ -n "$CACHEDIRECTORY" ]; then
     safe_run cd "$REPOCACHEINCOMING"
-    debug mktemp -d "tmp.XXXXXXX"
-    CLONE_TO=`mktemp -d "tmp.XXXXXXX"`
+    # Use dry-run mode because git/hg refuse to clone into
+    # an empty directory on SLES11
+    debug mktemp -u -d "tmp.XXXXXXXXXX"
+    CLONE_TO=`mktemp -u -d "tmp.XXXXXXXXXX"`
   else
     CLONE_TO="$FILE"
   fi
