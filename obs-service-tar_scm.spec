@@ -28,9 +28,32 @@ Release:        0
 Source:         %{service}
 Source1:        %{service}.service
 Source2:        %{service}.rc
+
+# test suite files
+Source100:      bzrfixtures.py
+Source101:      bzrtests.py
+Source102:      commontests.py
+Source103:      fixtures.py
+Source104:      gitfixtures.py
+Source105:      githgtests.py
+Source106:      gittests.py
+Source107:      hgfixtures.py
+Source108:      hgtests.py
+Source109:      scmlogs.py
+Source110:      svnfixtures.py
+Source111:      svntests.py
+Source112:      testassertions.py
+Source113:      testenv.py
+Source114:      test.py
+Source115:      utils.py
+Source116:      scm-wrapper
+
 Requires:       bzr git mercurial subversion
-BuildRequires:  bzr git mercurial subversion
+BuildRequires:  bzr
+BuildRequires:  git
+BuildRequires:  mercurial
 BuildRequires:  python >= 2.6
+BuildRequires:  subversion
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
