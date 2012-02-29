@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb 16 15:23:35 GMT 2012 - aspiers@suse.com
+
+- When the cache is used, output location of repo in the cache
+
+-------------------------------------------------------------------
 Tue Feb 14 16:52:19 GMT 2012 - aspiers@suse.com
 
 - add new 'versionformat' option to determine how version is

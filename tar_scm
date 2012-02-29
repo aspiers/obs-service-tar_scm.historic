@@ -193,6 +193,7 @@ fetch_upstream () {
   if [ -n "$CACHEDIRECTORY" -a -d "$REPOCACHE/.$MYSCM" ]; then
     debug "cache hit: $REPOCACHE/.$MYSCM"
     check_cache
+    echo "Found $TOHASH in $REPOCACHE; updating ..."
     update_cache
     REPOPATH="$REPOCACHE"
   else
@@ -234,6 +235,8 @@ calc_dir_to_clone_to () {
 }
 
 initial_clone () {
+  echo "Fetching from $MYURL ..."
+
   case "$MYSCM" in
     git)
       # Clone with full depth; so that the revision can be found if specified
@@ -270,7 +273,7 @@ cache_repo () {
     debug mv2 "$CLONE_TO" "$REPOCACHE"
     safe_run mv "$CLONE_TO" "$REPOCACHE"
     echo "$MYURL" > "$REPOURLCACHE"
-    echo "cached $MYURL at $REPOCACHE"
+    echo "Cached $MYURL at $REPOCACHE"
   fi
 }
 
