@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Feb 29 18:32:12 GMT 2012 - aspiers@suse.com
+
+- Remove accidental reference to keep-source parameter
+  which was never pushed upstream (obsoleted by new cache).
+
+-------------------------------------------------------------------
 Thu Feb 16 15:23:35 GMT 2012 - aspiers@suse.com
 
 - When the cache is used, output location of repo in the cache

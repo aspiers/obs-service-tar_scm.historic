@@ -17,7 +17,7 @@
     <description>package just a sub directory</description>
   </parameter>
   <parameter name="version">
-    <description>Specify version to be used in tarball. Defaults to automatically detected value formatted by versionformat parameter. If using keep-source, you should set this to a fixed constant which will be used to name the checked out directory.</description>
+    <description>Specify version to be used in tarball. Defaults to automatically detected value formatted by versionformat parameter.</description>
   </parameter>
   <parameter name="versionformat">
     <description>Auto-generate version from checked out source using this format string. For git, value is passed via git show --pretty=format:... (default '%at'); for hg, via hg log --template=... (default '{rev}'); for bzr and svn, %r is revision (default '%r'). Overrides tarball name defined by version parameter.</description>
